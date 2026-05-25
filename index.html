@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a237e">
+  <meta name="description" content="Simulador de questões FUNDATEC com IA">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FUNDATEC">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" href="icons/icon-192.png">
+  <title>FUNDATEC Simulados</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    :root{
+      --brand:#1a237e;--brand2:#283593;--brand3:#3949ab;
+      --green:#2e7d32;--red:#c62828;
+      --bg:#ffffff;--bg2:#f5f5f5;--bg3:#eeeeee;
+      --text:#212121;--text2:#616161;--text3:#9e9e9e;
+      --border:#e0e0e0;--border2:#bdbdbd;
+      --radius:12px;--radius-sm:8px;
+      --ff:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      --mono:'SF Mono','Courier New',monospace;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    @media(prefers-color-scheme:dark){
+      :root{
+        --bg:#121212;--bg2:#1e1e1e;--bg3:#2a2a2a;
+        --text:#f5f5f5;--text2:#bdbdbd;--text3:#757575;
+        --border:#333;--border2:#444;
+      }
+    }
+    html,body{height:100%;overflow:hidden;background:var(--bg)}
+    #app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;background:var(--bg);position:relative}
+
+    /* STATUS BAR */
+    .status-bar{height:env(safe-area-inset-top,0px);background:var(--brand)}
+
+    /* HEADER */
+    .header{background:var(--brand);color:#fff;padding:12px 16px 14px;flex-shrink:0}
+    .header-row{display:flex;align-items:center;justify-content:space-between}
+    .header-logo{display:flex;align-items:center;gap:8px}
+    .header-badge{font-size:11px;font-weight:600;padding:3px 8px;background:rgba(255,255,255,.2);border-radius:4px;letter-spacing:1.5px;font-family:var(--mono)}
+    .header-title{font-size:13px;opacity:.8;font-weight:400}
+    .header-streak{display:flex;align-items:center;gap:4px;font-size:12px;background:rgba(255,255,255,.15);padding:4px 10px;border-radius:20px}
+
+    /* CONTENT */
+    .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(60px + var(--safe-bottom))}
+
+    /* TAB BAR */
+    .tabbar{position:absolute;bottom:0;left:0;right:0;height:calc(60px + var(--safe-bottom));background:var(--bg);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bottom)}
+    .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:var(--text3);font-size:10px;font-family:var(--ff);cursor:pointer;transition:color .15s;padding:8px 4px}
+    .tab.active{color:var(--brand)}
+    .tab-icon{font-size:22px;line-height:1}
+
+    /* SCREENS */
+    .screen{display:none;padding:16px}
+    .screen.active{display:block}
+
+    /* TYPOGRAPHY */
+    .section-label{font-size:11px;font-weight:600;letter-spacing:1.2px;color:var(--text3);text-transform:uppercase;margin:20px 0 10px}
+    .section-label:first-child{margin-top:0}
+
+    /* HERO CARD */
+    .hero{background:var(--brand);border-radius:var(--radius);padding:18px;color:#fff;margin-bottom:4px}
+    .hero-title{font-size:17px;font-weight:600;margin-bottom:4px}
+    .hero-sub{font-size:12px;opacity:.75;margin-bottom:16px}
+    .hero-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .hero-stat{background:rgba(255,255,255,.15);border-radius:8px;padding:10px 6px;text-align:center}
+    .hero-stat-n{font-size:22px;font-weight:600;font-family:var(--mono)}
+    .hero-stat-l{font-size:10px;opacity:.8;margin-top:2px}
+
+    /* MODE CARDS */
+    .modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .mode-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+    .mode-card:active{transform:scale(.97)}
+    .mode-card::after{content:'';position:absolute;inset:0;background:var(--brand);opacity:0;transition:opacity .15s}
+    .mode-card:active::after{opacity:.05}
+    .mode-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:10px}
+    .mode-icon.blue{background:#e8eaf6;color:var(--brand)}
+    .mode-icon.teal{background:#e0f2f1;color:#00695c}
+    .mode-icon.amber{background:#fff8e1;color:#e65100}
+    .mode-icon.pink{background:#fce4ec;color:#c2185b}
+    .mode-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+    .mode-desc{font-size:11px;color:var(--text2);line-height:1.4}
+
+    /* SUBJECT LIST */
+    .subj-list{display:flex;flex-direction:column;gap:8px}
+    .subj-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:background .15s}
+    .subj-row:active{background:var(--bg2)}
+    .subj-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .subj-info{flex:1;min-width:0}
+    .subj-name{font-size:13px;font-weight:600;color:var(--text)}
+    .subj-meta{font-size:11px;color:var(--text3);margin-top:1px}
+    .subj-prog{height:3px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+    .subj-prog-fill{height:100%;border-radius:2px;transition:width .5s}
+    .subj-pct{font-size:12px;font-weight:600;font-family:var(--mono)}
+
+    /* UPLOAD */
+    .upload-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:36px 20px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:16px;background:var(--bg2)}
+    .upload-zone:active{border-color:var(--brand);background:#e8eaf6}
+    .upload-zone-icon{font-size:40px;color:var(--text3);margin-bottom:10px}
+    .upload-zone-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:5px}
+    .upload-zone-sub{font-size:12px;color:var(--text2);line-height:1.5}
+
+    .process-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+    .process-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+    .process-header-icon{font-size:24px;color:var(--brand)}
+    .process-name{font-size:13px;font-weight:600;color:var(--text)}
+    .process-size{font-size:11px;color:var(--text3);margin-top:2px}
+    .step{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12px;color:var(--text2)}
+    .step-dot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+    .step-dot.done{background:#e8f5e9;color:var(--green)}
+    .step-dot.active{background:#e8eaf6;color:var(--brand)}
+    .step-dot.wait{background:var(--bg2);color:var(--text3);border:1px solid var(--border)}
+    .banca-analysis{background:var(--bg2);border-radius:var(--radius-sm);padding:12px;margin-top:12px}
+    .banca-analysis-title{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+    .banca-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .banca-chip{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--bg);border:1px solid var(--border);color:var(--text2)}
+    .banca-chip.hi{background:#e8eaf6;border-color:#c5cae9;color:var(--brand)}
+
+    /* QUIZ SETUP */
+    .back-row{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+    .back-btn{background:none;border:1px solid var(--border2);border-radius:var(--radius-sm);padding:7px 12px;cursor:pointer;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px;font-family:var(--ff)}
+    .back-btn:active{background:var(--bg2)}
+    .screen-title{font-size:16px;font-weight:600;color:var(--text)}
+    .mode-desc-box{background:var(--bg2);border-radius:var(--radius-sm);padding:12px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:16px;border-left:3px solid var(--brand)}
+    .subj-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+    .subj-chip{padding:8px 16px;border-radius:20px;border:1px solid var(--border2);font-size:12px;cursor:pointer;color:var(--text2);transition:all .15s;font-family:var(--ff);background:var(--bg)}
+    .subj-chip.sel{background:var(--brand);color:#fff;border-color:var(--brand)}
+    .big-btn{width:100%;padding:14px;background:var(--brand);color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:background .15s}
+    .big-btn:active{background:var(--brand2)}
+    .big-btn:disabled{background:var(--bg3);color:var(--text3);cursor:default}
+
+    /* QUIZ */
+    .quiz-header-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+    .quit-btn{background:none;border:none;padding:6px;cursor:pointer;color:var(--text2)}
+    .quiz-progress-track{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+    .quiz-progress-fill{height:100%;background:var(--brand);border-radius:3px;transition:width .4s}
+    .quiz-progress-text{font-size:11px;color:var(--text3);font-family:var(--mono);white-space:nowrap}
+    .score-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+    .score-pill{font-size:12px;padding:4px 12px;border-radius:20px;font-family:var(--mono);font-weight:600}
+    .score-pill.g{background:#e8f5e9;color:var(--green)}
+    .score-pill.r{background:#ffebee;color:var(--red)}
+    .mode-pill{margin-left:auto;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:500}
+    .mode-pill.m1{background:#e8eaf6;color:var(--brand)}
+    .mode-pill.m2{background:#e0f2f1;color:#00695c}
+    .mode-pill.m3{background:#fff8e1;color:#e65100}
+
+    .q-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+    .q-tags{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+    .q-tag{font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;font-family:var(--mono)}
+    .q-tag.year{background:#e8eaf6;color:var(--brand)}
+    .q-tag.cargo{background:var(--bg2);color:var(--text2)}
+    .q-tag.subj{background:#e0f2f1;color:#00695c}
+    .q-text{font-size:14px;line-height:1.7;color:var(--text)}
+
+    .opts{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+    .opt{display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);cursor:pointer;text-align:left;width:100%;transition:all .15s;font-family:var(--ff)}
+    .opt:active:not(:disabled){background:var(--bg2)}
+    .opt:disabled{cursor:default}
+    .opt-letter{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;border:1px solid var(--border2);color:var(--text2);flex-shrink:0;font-family:var(--mono)}
+    .opt-text{font-size:13px;line-height:1.55;color:var(--text);text-align:left}
+    .opt.correct{border-color:var(--green);background:#f1f8e9}
+    .opt.correct .opt-letter{background:var(--green);color:#fff;border-color:var(--green)}
+    .opt.wrong{border-color:var(--red);background:#ffebee}
+    .opt.wrong .opt-letter{background:var(--red);color:#fff;border-color:var(--red)}
+    .opt.dimmed{opacity:.4}
+
+    .result-box{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+    .result-header{padding:11px 14px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+    .result-header.ok{background:#e8f5e9;color:#1b5e20}
+    .result-header.err{background:#ffebee;color:#b71c1c}
+    .result-header-icon{font-size:18px}
+    .result-body{padding:13px 14px;font-size:13px;line-height:1.7;color:var(--text);background:var(--bg)}
+    .ai-loading{display:flex;align-items:center;gap:8px;padding:13px 14px;font-size:12px;color:var(--text2);background:var(--bg)}
+
+    .spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--brand);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* STATS */
+    .big-stat{background:var(--bg2);border-radius:var(--radius);padding:16px;margin-bottom:12px;text-align:center}
+    .big-stat-n{font-size:48px;font-weight:700;color:var(--brand);font-family:var(--mono);line-height:1}
+    .big-stat-l{font-size:13px;color:var(--text2);margin-top:6px}
+    .stats-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+    .stat-mini{background:var(--bg2);border-radius:var(--radius-sm);padding:14px;text-align:center}
+    .stat-mini-n{font-size:26px;font-weight:700;color:var(--text);font-family:var(--mono)}
+    .stat-mini-l{font-size:11px;color:var(--text2);margin-top:4px}
+    .subj-stat-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+    .subj-stat-title{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+    .subj-stat-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+    .subj-stat-row:last-child{border:none;padding-bottom:0}
+    .subj-stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .subj-stat-name{font-size:12px;color:var(--text);flex:1;font-weight:500}
+    .subj-stat-bar-wrap{width:70px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+    .subj-stat-bar-fill{height:100%;border-radius:2px}
+    .subj-stat-pct{font-size:11px;color:var(--text2);font-family:var(--mono);width:32px;text-align:right}
+
+    /* DONE SCREEN */
+    .done-screen{padding:32px 16px;text-align:center}
+    .done-icon{font-size:56px;color:var(--brand);margin-bottom:12px}
+    .done-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px}
+    .done-sub{font-size:13px;color:var(--text2);margin-bottom:20px}
+    .done-score{font-size:52px;font-weight:700;color:var(--brand);font-family:var(--mono);margin-bottom:4px}
+    .done-score-sub{font-size:13px;color:var(--text2);margin-bottom:28px}
+    .outline-btn{background:none;border:1px solid var(--border2);border-radius:var(--radius);padding:12px 20px;font-size:13px;cursor:pointer;font-family:var(--ff);color:var(--text);margin-top:10px;width:100%}
+    .outline-btn:active{background:var(--bg2)}
+
+    /* INSTALL BANNER */
+    .install-banner{background:#e8eaf6;border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;cursor:pointer}
+    .install-banner-icon{font-size:24px;color:var(--brand)}
+    .install-banner-text{flex:1}
+    .install-banner-title{font-size:13px;font-weight:600;color:var(--brand)}
+    .install-banner-sub{font-size:11px;color:var(--brand2);margin-top:1px}
+    .install-banner-close{background:none;border:none;font-size:18px;color:var(--text2);cursor:pointer;padding:4px;line-height:1}
+
+    /* OFFLINE BADGE */
+    .offline-badge{background:#fff3e0;border-radius:4px;padding:3px 10px;font-size:11px;color:#e65100;font-weight:500;display:none}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="status-bar"></div>
+
+  <div class="header">
+    <div class="header-row">
+      <div class="header-logo">
+        <span class="header-badge">FUNDATEC</span>
+        <span class="header-title">Simulados</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="offline-badge" id="offline-badge">● Offline</span>
+        <span class="header-streak" id="header-streak">🔥 <span id="streak-n">0</span> dias</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content" id="content">
+
+    <!-- HOME -->
+    <div class="screen active" id="s-home">
+      <div id="install-banner-wrap"></div>
+      <div class="hero">
+        <div class="hero-title">Bom estudo, candidato! 👋</div>
+        <div class="hero-sub">Continue sua preparação para a FUNDATEC</div>
+        <div class="hero-stats">
+          <div class="hero-stat"><div class="hero-stat-n" id="h-total">0</div><div class="hero-stat-l">questões</div></div>
+          <div class="hero-stat"><div class="hero-stat-n" id="h-pct">—%</div><div class="hero-stat-l">acertos</div></div>
+          <div class="hero-stat"><div class="hero-stat-n" id="h-pdfs">0</div><div class="hero-stat-l">provas</div></div>
+        </div>
+      </div>
+      <div class="section-label">Modos de estudo</div>
+      <div class="modes">
+        <div class="mode-card" onclick="goSetup(1)">
+          <div class="mode-icon blue">📋</div>
+          <div class="mode-name">Simulado fiel</div>
+          <div class="mode-desc">Questão idêntica à prova</div>
+        </div>
+        <div class="mode-card" onclick="goSetup(2)">
+          <div class="mode-icon teal">🔄</div>
+          <div class="mode-name">Questão adaptada</div>
+          <div class="mode-desc">IA reescreve no estilo FUNDATEC</div>
+        </div>
+        <div class="mode-card" onclick="goSetup(3)">
+          <div class="mode-icon amber">💡</div>
+          <div class="mode-name">Inferência da banca</div>
+          <div class="mode-desc">IA gera questão pelo perfil</div>
+        </div>
+        <div class="mode-card" onclick="goTab('s-upload')">
+          <div class="mode-icon pink">📄</div>
+          <div class="mode-name">Adicionar prova</div>
+          <div class="mode-desc">Importar PDF de concurso</div>
+        </div>
+      </div>
+      <div class="section-label">Matérias</div>
+      <div class="subj-list" id="home-subj-list"></div>
+    </div>
+
+    <!-- UPLOAD -->
+    <div class="screen" id="s-upload">
+      <div class="section-label" style="margin-top:0">Importar prova em PDF</div>
+      <div class="upload-zone" onclick="document.getElementById('pdf-input').click()">
+        <div class="upload-zone-icon">📥</div>
+        <div class="upload-zone-title">Toque para selecionar o PDF</div>
+        <div class="upload-zone-sub">Selecione provas FUNDATEC em PDF<br>A IA extrai as questões automaticamente</div>
+      </div>
+      <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePdf(this)">
+      <div id="process-area"></div>
+    </div>
+
+    <!-- QUIZ SETUP -->
+    <div class="screen" id="s-setup">
+      <div class="back-row">
+        <button class="back-btn" onclick="goTab('s-home')">← Início</button>
+        <span class="screen-title" id="setup-title">Modo de estudo</span>
+      </div>
+      <div class="mode-desc-box" id="setup-desc"></div>
+      <div class="section-label" style="margin-top:0">Escolha as matérias</div>
+      <div class="subj-chips" id="subj-chips"></div>
+      <button class="big-btn" id="start-btn" onclick="launchQuiz()" disabled>Iniciar simulado</button>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="screen" id="s-quiz">
+      <div class="quiz-header-row">
+        <button class="quit-btn" onclick="goTab('s-home')">✕</button>
+        <div class="quiz-progress-track"><div class="quiz-progress-fill" id="qpf"></div></div>
+        <span class="quiz-progress-text" id="q-prog-text">1/10</span>
+      </div>
+      <div class="score-row">
+        <span class="score-pill g">✓ <span id="q-right">0</span></span>
+        <span class="score-pill r">✗ <span id="q-wrong">0</span></span>
+        <span class="mode-pill m1" id="mode-pill">Simulado fiel</span>
+      </div>
+      <div class="q-card">
+        <div class="q-tags" id="q-tags"></div>
+        <div class="q-text" id="q-text"></div>
+      </div>
+      <div class="opts" id="opts"></div>
+      <div class="result-box" id="result-box" style="display:none">
+        <div class="result-header" id="result-header"></div>
+        <div id="result-content"></div>
+      </div>
+      <button class="big-btn" id="next-btn" style="display:none;margin-bottom:8px" onclick="nextQ()">Próxima questão →</button>
+    </div>
+
+    <!-- STATS -->
+    <div class="screen" id="s-stats">
+      <div class="section-label" style="margin-top:0">Desempenho geral</div>
+      <div class="big-stat">
+        <div class="big-stat-n" id="st-pct">—%</div>
+        <div class="big-stat-l" id="st-label">Responda questões para ver seu progresso</div>
+      </div>
+      <div class="stats-2">
+        <div class="stat-mini"><div class="stat-mini-n" id="st-total">0</div><div class="stat-mini-l">Respondidas</div></div>
+        <div class="stat-mini"><div class="stat-mini-n" id="st-streak2">0</div><div class="stat-mini-l">Dias seguidos</div></div>
+      </div>
+      <div class="subj-stat-card">
+        <div class="subj-stat-title">Por matéria</div>
+        <div id="subj-stats"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <div class="tabbar">
+    <button class="tab active" id="tab-s-home" onclick="goTab('s-home')">
+      <span class="tab-icon">🏠</span>Início
+    </button>
+    <button class="tab" id="tab-s-upload" onclick="goTab('s-upload')">
+      <span class="tab-icon">📄</span>Importar
+    </button>
+    <button class="tab" id="tab-s-setup" onclick="goSetup(1)">
+      <span class="tab-icon">✏️</span>Praticar
+    </button>
+    <button class="tab" id="tab-s-stats" onclick="goTab('s-stats')">
+      <span class="tab-icon">📊</span>Progresso
+    </button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
