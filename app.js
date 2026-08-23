@@ -97,7 +97,7 @@ async function callClaude(prompt) {
     headers,
     body: JSON.stringify({
       model: ANTHROPIC_MODEL,
-      max_tokens: 1000,
+      max_tokens: 4000,
       messages: [{ role:'user', content: prompt }]
     })
   });
