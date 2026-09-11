@@ -106,6 +106,22 @@ async function callClaude(prompt) {
 }
 
 // ---------- NAVEGAÇÃO ----------
+function selectPdfType(type, button) {
+  const input = document.getElementById('pdf-type');
+  const buttons = document.querySelectorAll('#pdf-type-options .subj-chip');
+
+  if (!input) return;
+
+  input.value = type;
+
+  buttons.forEach(btn => btn.classList.remove('sel'));
+
+  if (button) {
+    button.classList.add('sel');
+  }
+
+  console.log('Tipo de documento selecionado:', type);
+}
 function goTab(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
