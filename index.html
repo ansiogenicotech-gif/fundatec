@@ -251,7 +251,22 @@
           <div class="hero-stat"><div class="hero-stat-n" id="h-pdfs">0</div><div class="hero-stat-l">provas</div></div>
         </div>
       </div>
-     <div class="section-label">Como você quer estudar?</div>
+     <div class="section-label">Meu concurso</div>
+
+<div class="process-card" style="cursor:pointer" onclick="goTab('s-upload')">
+  <div class="process-header">
+    <div class="process-header-icon">📄</div>
+    <div>
+      <div class="process-name">Analisar edital com IA</div>
+      <div class="process-size">Envie seu edital e monte sua preparação personalizada</div>
+    </div>
+  </div>
+
+  <button class="big-btn" type="button">
+    Analisar edital
+  </button>
+</div>
+      <div class="section-label">Como você quer estudar?</div>
       <div class="modes">
         <div class="mode-card" onclick="goSetup(1)">
           <div class="mode-icon blue">📋</div>
@@ -280,11 +295,11 @@
 
     <!-- UPLOAD -->
     <div class="screen" id="s-upload">
-      <div class="section-label" style="margin-top:0">Importar prova em PDF</div>
+      <div class="section-label" style="margin-top:0">Analisar conteúdo com IA</div>
       <div class="upload-zone" onclick="document.getElementById('pdf-input').click()">
-        <div class="upload-zone-icon">📥</div>
-        <div class="upload-zone-title">Toque para selecionar o PDF</div>
-        <div class="upload-zone-sub">Selecione provas FUNDATEC em PDF<br>A IA extrai as questões automaticamente</div>
+        <div class="upload-zone-icon">📄</div>
+<div class="upload-zone-title">Selecione um PDF para analisar</div>
+<div class="upload-zone-sub">Envie um edital, prova ou material de estudo<br>A IA identifica o conteúdo e orienta sua preparação</div>
       </div>
       <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePdf(this)">
       <div id="process-area"></div>
