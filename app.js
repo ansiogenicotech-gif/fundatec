@@ -423,7 +423,7 @@ async function handlePdf(input) {
   const subj = await extractQuestions(text, file.name);
   setStep(3);
   await analyzeBanca(text, area);
-  setStep(4);
+  setStep(5);
   DB.pdfs++;
   saveDB();
   setTimeout(() => {
