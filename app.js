@@ -403,52 +403,279 @@ function updateStreak() {
 async function handlePdf(input) {
   const file = input.files[0];
   if (!file) return;
+
+  const pdfType = document.getElementById('pdf-type')?.value || 'prova';
   const area = document.getElementById('process-area');
+
+  const labels = {
+    edital: {
+      step2: 'Analisando edital com IA',
+      step3: 'Identificando disciplinas e assuntos',
+      step4: 'Salvando estrutura do concurso'
+    },
+    prova: {
+      step2: 'Extraindo questões com IA',
+      step3: 'Analisando perfil da banca',
+      step4: 'Salvando questões no banco'
+    },
+    material: {
+      step2: 'Analisando conteúdo com IA',
+      step3: 'Criando questões de estudo',
+      step4: 'Salvando questões no banco'
+    }
+  };
+
+  const currentLabels = labels[pdfType] || labels.prova;
+
   area.innerHTML = `<div class="process-card">
     <div class="process-header">
       <span class="process-header-icon">📄</span>
       <div>
         <div class="process-name">${file.name}</div>
-        <div class="process-size">${(file.size/1024).toFixed(0)} KB</div>
+        <div class="process-size">${(file.size / 1024).toFixed(0)} KB</div>
       </div>
     </div>
+
     <div id="steps">
-      ${makeStep(1,'active','Lendo PDF...')}
-      ${makeStep(2,'wait','Extraindo questões com IA')}
-      ${makeStep(3,'wait','Analisando perfil da banca')}
-      ${makeStep(4,'wait','Salvando no banco de questões')}
+      ${makeStep(1, 'active', 'Lendo PDF...')}
+      ${makeStep(2, 'wait', currentLabels.step2)}
+      ${makeStep(3, 'wait', currentLabels.step3)}
+      ${makeStep(4, 'wait', currentLabels.step4)}
     </div>
   </div>`;
 
-  // Ler PDF
+  // ---------- LEITURA DO PDF ----------
   let text = '';
+
   try {
     if (typeof pdfjsLib !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
       const ab = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+
       for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) {
         const page = await pdf.getPage(i);
         const tc = await page.getTextContent();
+
         text += tc.items.map(it => it.str).join(' ') + '\n';
       }
     }
-  } catch(e) { text = '[PDF sem texto extraível]'; }
+  } catch (e) {
+    console.error('Erro ao ler PDF:', e);
+    text = '[PDF sem texto extraível]';
+  }
 
-  setStep(2);
-  const subj = await extractQuestions(text, file.name);
-  setStep(3);
-  await analyzeBanca(text, area);
-  setStep(5);
-  DB.pdfs++;
-  saveDB();
-  setTimeout(() => {
+  // ---------- EDITAL ----------
+  if (pdfType === 'edital') {
+    setStep(2);
+
+    const editalPrompt = `Você é especialista em concursos públicos.
+
+Analise o edital abaixo e organize as informações de forma objetiva.
+
+Identifique:
+- nome do concurso;
+- órgão;
+- cargo;
+- banca organizadora;
+- data da prova, se existir;
+- disciplinas;
+- assuntos de cada disciplina.
+
+Não invente informações que não estejam no texto.
+
+Responda APENAS JSON neste formato:
+
+{
+  "concurso": "",
+  "orgao": "",
+  "cargo": "",
+  "banca": "",
+  "data_prova": "",
+  "disciplinas": [
+    {
+      "nome": "",
+      "assuntos": ["", ""]
+    }
+  ]
+}
+
+Texto do edital:
+${text.substring(0, 12000)}`;
+
+    try {
+      const raw = await callClaude(editalPrompt);
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+
+      setStep(3);
+
+      DB.concurso = parsed;
+
+      setStep(4);
+
+      DB.pdfs++;
+      saveDB();
+
+      const qtdDisciplinas = Array.isArray(parsed.disciplinas)
+        ? parsed.disciplinas.length
+        : 0;
+
+      area.insertAdjacentHTML('beforeend', `
+        <div style="background:#e8f5e9;border-radius:12px;padding:12px 14px;font-size:13px;color:#1b5e20;margin-top:10px">
+          ✅ Edital analisado com sucesso!
+          <br><br>
+          <strong>${parsed.concurso || 'Concurso identificado'}</strong>
+          <br>
+          ${parsed.cargo || 'Cargo não identificado'}
+          <br>
+          ${parsed.banca || 'Banca não identificada'}
+          <br><br>
+          📚 ${qtdDisciplinas} disciplinas identificadas.
+        </div>
+      `);
+
+      renderHome();
+
+    } catch (e) {
+      console.error('Erro ao analisar edital:', e);
+
+      area.insertAdjacentHTML('beforeend', `
+        <div style="background:#ffebee;border-radius:12px;padding:12px 14px;font-size:13px;color:#b71c1c;margin-top:10px">
+          ❌ Não foi possível analisar o edital.
+          <br>Verifique a chave da IA ou tente novamente.
+        </div>
+      `);
+    }
+
+    input.value = '';
+    return;
+  }
+
+  // ---------- PROVA APLICADA ----------
+  if (pdfType === 'prova') {
+    setStep(2);
+
+    await extractQuestions(text, file.name);
+
+    setStep(3);
+
+    await analyzeBanca(text, area);
+
+    setStep(4);
+
+    DB.pdfs++;
+    saveDB();
+
     area.insertAdjacentHTML('beforeend', `
-      <div style="background:#e8f5e9;border-radius:12px;padding:12px 14px;font-size:13px;color:#1b5e20;display:flex;align-items:center;gap:8px;margin-top:10px">
-        ✅ PDF processado! Questões adicionadas ao banco de estudos.
-      </div>`);
+      <div style="background:#e8f5e9;border-radius:12px;padding:12px 14px;font-size:13px;color:#1b5e20;margin-top:10px">
+        ✅ Prova processada!
+        <br>
+        As questões identificadas foram adicionadas ao banco de estudos.
+      </div>
+    `);
+
     renderHome();
-  }, 600);
+    input.value = '';
+    return;
+  }
+
+  // ---------- MATERIAL DE ESTUDO ----------
+  if (pdfType === 'material') {
+    setStep(2);
+
+    const subj = guessSubject(file.name + ' ' + text);
+
+    const materialPrompt = `Você é um professor especialista em concursos públicos.
+
+Use o conteúdo abaixo para criar 5 questões inéditas de múltipla escolha para estudo.
+
+Matéria: ${subj}
+
+Regras:
+- 5 alternativas por questão;
+- apenas uma alternativa correta;
+- questões baseadas somente no conteúdo enviado;
+- linguagem clara;
+- nível de concurso público;
+- não copie literalmente frases do material;
+- informe a alternativa correta pela posição, começando em 0.
+
+Responda APENAS JSON:
+
+{
+  "materia": "${subj}",
+  "questoes": [
+    {
+      "year": "2026",
+      "cargo": "Questão gerada por IA",
+      "text": "enunciado",
+      "opts": ["A", "B", "C", "D", "E"],
+      "correct": 0
+    }
+  ]
+}
+
+Conteúdo:
+${text.substring(0, 12000)}`;
+
+    try {
+      const raw = await callClaude(materialPrompt);
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+
+      setStep(3);
+
+      const mat = parsed.materia || subj;
+
+      if (!DB.questions[mat]) {
+        DB.questions[mat] = [];
+      }
+
+      (parsed.questoes || []).forEach(q => {
+        DB.questions[mat].push({
+          ...q,
+          subj: mat,
+          type: 'ai_generated'
+        });
+      });
+
+      setStep(4);
+
+      DB.pdfs++;
+      saveDB();
+
+      const quantidade = (parsed.questoes || []).length;
+
+      area.insertAdjacentHTML('beforeend', `
+        <div style="background:#e8f5e9;border-radius:12px;padding:12px 14px;font-size:13px;color:#1b5e20;margin-top:10px">
+          ✅ Material analisado!
+          <br><br>
+          🤖 ${quantidade} questões inéditas foram criadas pela IA.
+          <br>
+          📚 Matéria identificada: <strong>${mat}</strong>
+        </div>
+      `);
+
+      renderHome();
+
+    } catch (e) {
+      console.error('Erro ao gerar questões do material:', e);
+
+      area.insertAdjacentHTML('beforeend', `
+        <div style="background:#ffebee;border-radius:12px;padding:12px 14px;font-size:13px;color:#b71c1c;margin-top:10px">
+          ❌ Não foi possível gerar as questões.
+          <br>Verifique a chave da IA ou tente novamente.
+        </div>
+      `);
+    }
+
+    input.value = '';
+    return;
+  }
+
   input.value = '';
 }
 
