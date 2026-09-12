@@ -539,16 +539,19 @@ ${text.substring(0, 12000)}`;
 
       renderHome();
 
-    } catch (e) {
-      console.error('Erro ao analisar edital:', e);
+   } catch (e) {
+  console.error('Erro ao analisar edital:', e);
 
-      area.insertAdjacentHTML('beforeend', `
-        <div style="background:#ffebee;border-radius:12px;padding:12px 14px;font-size:13px;color:#b71c1c;margin-top:10px">
-          ❌ Não foi possível analisar o edital.
-          <br>Verifique a chave da IA ou tente novamente.
-        </div>
-      `);
-    }
+  area.insertAdjacentHTML('beforeend', `
+    <div style="background:#ffebee;border-radius:12px;padding:12px 14px;font-size:13px;color:#b71c1c;margin-top:10px">
+      ❌ Não foi possível analisar o edital.
+      <br><br>
+      <strong>Detalhes do erro:</strong>
+      <br>
+      ${e.message || e}
+    </div>
+  `);
+}
 
     input.value = '';
     return;
